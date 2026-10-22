@@ -259,7 +259,7 @@
   <details>
     <summary>名单与口径</summary>
     <div class="others" id="others"></div>
-    <p class="fine">候选里有一批是「公认护城河宽、近一年明显回调」，另一批是护城河很深、不限价格的对照。不是全市场扫描。估值分大致等于 6 − 0.15 × 预期市盈率，再按增速、本币国债（中债 1.69%、美债 5.22%）和自身历史分位调整。历史分位低只说明比自己过去便宜。护城河先看锁定来自哪里，再用净利率和 ROE 检验；银行和保险改看 ROE。分数到了 3.5 还不够：正文若已写成定价权一般、利润池缩小或客户正在换供应商，就移出「护城河高且便宜」。监管减分，只在它改写赚钱方式的时候。合理股价是把估值吸引力拉回 3.5 时的价格，沿用每 1 分约 6.7 倍预期市盈率的斜率，并随利率条使用同一套敏感度。低估和高估按这个价格相对实时现价。现价、涨跌幅、滚动市盈率和股息大约每分钟从东方财富更新，净利润、毛利率、净利率和 ROE 用近十二个月或最近年报，口径对得上才覆盖原值。预期市盈率按现价相对收录时的价格同比缩放，图上的左右位置跟着动。历史分位仍用收录值。A 股和港股的收录价是 2026 年 10 月 13 日午盘，美股是 10 月 12 日收盘。这是示意，不是目标价。数据截至 2026 年 10 月 9–13 日，来自 S&P Global、股查查、stockrow 和公司公告。港股通股息预扣约 20%，美股约 10%。网易港股是第二上市，未入港股通。点中一家公司时补上上市以来的轨迹：横轴用年末市盈率按 6 − 0.15 × 市盈率回放，纵轴用现在的护城河分。A 股取每年最后一个交易日的滚动市盈率，港股和美股取财年末股价除以当年每股收益。报表不是美元时，每股收益按财年末汇率换成报价货币；台积电一份美股等于 5 股普通股。亏损或缺口的年份把线断开。</p>
+    <p class="fine">候选里有一批是「公认护城河宽、近一年明显回调」，另一批是护城河很深、不限价格的对照。不是全市场扫描。估值分大致等于 6 − 0.15 × 预期市盈率，再按增速、本币国债（中债 1.69%、美债 5.22%）和自身历史分位调整。历史分位低只说明比自己过去便宜。护城河先看锁定来自哪里，再用净利率和 ROE 检验；银行和保险改看 ROE。分数到了 3.5 还不够：正文若已写成定价权一般、利润池缩小或客户正在换供应商，就移出「护城河高且便宜」。监管减分，只在它改写赚钱方式的时候。合理股价是把估值吸引力拉回 3.5 时的价格，沿用每 1 分约 6.7 倍预期市盈率的斜率，并随利率条使用同一套敏感度。低估和高估按这个价格相对实时现价。现价、涨跌幅、滚动市盈率和股息大约每分钟从东方财富更新，净利润、毛利率、净利率和 ROE 用近十二个月或最近年报，口径对得上才覆盖原值。预期市盈率按现价相对收录时的价格同比缩放，图上的左右位置跟着动。历史分位随现价重算：现价相对最近收盘缩放滚动市盈率，再看有多少个交易日比这一天更便宜。A 股用每日市盈率，港股和美股用每股收益配上复权股价。不满十年就写上市以来。A 股和港股的收录价是 2026 年 10 月 13 日午盘，美股是 10 月 12 日收盘。这是示意，不是目标价。数据截至 2026 年 10 月 9–13 日，来自 S&P Global、股查查、stockrow 和公司公告。港股通股息预扣约 20%，美股约 10%。网易港股是第二上市，未入港股通。点中一家公司时补上上市以来的轨迹：横轴用年末市盈率按 6 − 0.15 × 市盈率回放，纵轴用现在的护城河分。A 股取每年最后一个交易日的滚动市盈率，港股和美股取财年末股价除以当年每股收益。报表不是美元时，每股收益按财年末汇率换成报价货币；台积电一份美股等于 5 股普通股。亏损或缺口的年份把线断开。</p>
   </details>
 </main>
 <script>
@@ -1535,6 +1535,36 @@ function liveRatio(d, key){
   }
   return pickNum(d[key], live);
 }
+function pctText(n){
+  if(!(n>=0)) return "—";
+  if(n<0.05) return "0%";
+  return (Math.round(n*10)/10).toFixed(1)+"%";
+}
+function rankBand(arr, now){
+  if(!(now>0) || !arr || arr.length<60) return null;
+  let below=0;
+  for(let i=0;i<arr.length;i++) if(arr[i]<now) below++;
+  return below/arr.length*100;
+}
+function shownPct(d){
+  const b=BAND[d.id];
+  const live=LIVE[d.id];
+  if(!b || !b.ok || !b.pe){
+    if(b && b.loading) return d.pct && d.pct!=="—" ? d.pct : "正在算";
+    return d.pct || "—";
+  }
+  const px=live && live.px>0 ? live.px : b.peClose;
+  if(!(px>0) || !(b.peAt>0) || !(b.peClose>0)) return d.pct || "—";
+  const peNow=b.peAt*px/b.peClose;
+  const peP=rankBand(b.pe, peNow);
+  if(peP==null) return d.pct || "—";
+  const label=b.since ? "上市以来" : "10年";
+  if(/PB/.test(d.pct||"") && b.pb && b.pbAt>0 && b.pbClose>0){
+    const pbP=rankBand(b.pb, b.pbAt*px/b.pbClose);
+    if(pbP!=null) return "PE "+pctText(peP)+"，PB "+pctText(pbP);
+  }
+  return label+" "+pctText(peP);
+}
 function shownPe(d){
   const ttm=LIVE[d.id] && LIVE[d.id].peTtm;
   const fwd=nowFpe(d);
@@ -1589,7 +1619,12 @@ function factHint(d, kind){
     return "现金股息率，随报价更新";
   }
   if(kind==="pe") return "前面是滚动市盈率，后面是按现价缩放的预期";
-  return "自身历史位置，沿用收录";
+  if(kind==="pct"){
+    const b=BAND[d.id];
+    if(b && b.ok && b.pe) return "现价相对最近收盘缩放市盈率，在这只股票自己的交易日里有多便宜";
+    return "正在按现价重算自身历史位置";
+  }
+  return "";
 }
 function paintStats(){
   const d=C.find(x=>x.id===sel);
@@ -1602,7 +1637,7 @@ function paintStats(){
     if(hint && el.previousElementSibling) el.previousElementSibling.title=hint;
   };
   set("stat-pe", shownPe(d), factHint(d,"pe"));
-  set("stat-pct", d.pct, factHint(d,"pct"));
+  set("stat-pct", shownPct(d), factHint(d,"pct"));
   set("stat-div", shownDiv(d), factHint(d,"div"));
   set("stat-profit", shownProfit(d), factHint(d,"profit"));
   set("stat-gross", gross==null?"—":pct1(gross), factHint(d,"gross"));
@@ -1642,11 +1677,12 @@ function renderDetail(){
   if(!d.earn){
     box.innerHTML=`<div class="sheet">${head}<p style="margin-top:8px">${d.note||""}</p></div>`;
     updateRateNote();
+    pullBand(d);
     return;
   }
   const nums=`<div class="stats">
     ${stat("市盈率", shownPe(d), factHint(d,"pe"), "stat-pe")}
-    ${stat("分位", d.pct, factHint(d,"pct"), "stat-pct")}
+    ${stat("分位", shownPct(d), factHint(d,"pct"), "stat-pct")}
     ${stat("股息", shownDiv(d), factHint(d,"div"), "stat-div")}
     ${stat("净利润", shownProfit(d), factHint(d,"profit"), "stat-profit")}
     ${stat("毛利率", liveRatio(d,"gross")==null?"—":pct1(liveRatio(d,"gross")), factHint(d,"gross"), "stat-gross")}
@@ -1661,6 +1697,7 @@ function renderDetail(){
   box.innerHTML=`<div class="sheet">${head}<p class="tag" style="margin-top:6px">${tag}</p>${doubt}${nums}`+
     block(heads[0], d.earn)+block(heads[1], d.lock)+block(heads[2], d.gap)+block(heads[3], d.cycle)+`</div>`;
   updateRateNote();
+  pullBand(d);
 }
 function block(t, s){ return `<h3>${t}</h3><p>${s}</p>`; }
 
@@ -1733,6 +1770,7 @@ function renderOthers(){
 }
 
 const PATH = {};
+const BAND = {};
 let histWant = false;
 function peScore(pe){
   if(!(pe>0) || pe>500 || !isFinite(pe)) return null;
@@ -1801,6 +1839,181 @@ async function histGet(url){
   const j=await fetch(url).then(r=>r.json());
   if(!j || j.success===false || !j.result) throw new Error(j && j.message || "empty");
   return j;
+}
+function pullBand(d){
+  if(!d || (BAND[d.id] && (BAND[d.id].loading || BAND[d.id].ok))) return;
+  BAND[d.id]={loading:true};
+  const job=d.mkt==="A" ? bandA(d) : bandOverseas(d);
+  job.then(pack=>{
+    BAND[d.id]=pack && pack.pe ? pack : {ok:true, err:true};
+    if(sel===d.id) paintStats();
+  }).catch(()=>{
+    BAND[d.id]={ok:true, err:true};
+    if(sel===d.id) paintStats();
+  });
+}
+function packBand(points, since){
+  let end=points.length-1;
+  while(end>=0 && !(points[end].pe>0 && points[end].pe<500 && points[end].close>0)) end--;
+  if(end<60) return null;
+  const anchor=points[end];
+  const cutDate=new Date(anchor.date+"T00:00:00");
+  cutDate.setFullYear(cutDate.getFullYear()-10);
+  const cut=since ? "1900-01-01" : cutDate.toISOString().slice(0,10);
+  const pe=[], pb=[];
+  let first=null;
+  for(let i=0;i<end;i++){
+    const p=points[i];
+    if(p.date<cut || !(p.pe>0) || p.pe>=500) continue;
+    if(!first) first=p.date;
+    pe.push(p.pe);
+    if(p.pb>0 && p.pb<200) pb.push(p.pb);
+  }
+  if(pe.length<60 || !first) return null;
+  const span=(Date.parse(anchor.date)-Date.parse(first))/(365.25*864e5);
+  return {ok:true, pe, pb, peAt:anchor.pe, pbAt:anchor.pb||0, peClose:anchor.close, pbClose:anchor.close, span, since:!!since || span<8};
+}
+async function bandA(d){
+  const code=d.ticker.slice(0,6);
+  const since=/上市以来/.test(d.pct||"");
+  const filter=encodeURIComponent(`(SECURITY_CODE="${code}")`);
+  const base="https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_VALUEANALYSIS_DET&columns=TRADE_DATE,PE_TTM,PB_MRQ,CLOSE_PRICE&pageSize=500&sortTypes=-1&sortColumns=TRADE_DATE&source=WEB&client=WEB&filter="+filter;
+  const rows=[];
+  for(let page=1; page<=12; page++){
+    const j=await histGet(base+"&pageNumber="+page);
+    const data=j.result.data||[];
+    rows.push(...data);
+    const oldest=data.length ? String(data[data.length-1].TRADE_DATE).slice(0,10) : "";
+    const newest=rows.length ? String(rows[0].TRADE_DATE).slice(0,4) : "";
+    if(!since && oldest && newest && +oldest.slice(0,4) <= +newest-11) break;
+    if(page>=(j.result.pages||1) || !data.length) break;
+  }
+  const points=rows.map(r=>({
+    date:String(r.TRADE_DATE).slice(0,10),
+    pe:+r.PE_TTM,
+    pb:+r.PB_MRQ,
+    close:+r.CLOSE_PRICE
+  })).filter(p=>p.date).sort((a,b)=>a.date.localeCompare(b.date));
+  return packBand(points, since);
+}
+async function bandRows(d){
+  const code=secuCode(d);
+  const report=d.mkt==="港" ? "RPT_HKF10_FN_MAININDICATOR" : "RPT_USF10_FN_GMAININDICATOR";
+  const sets=d.mkt==="港"
+    ? ["REPORT_DATE,DATE_TYPE_CODE,BASIC_EPS,BPS","REPORT_DATE,DATE_TYPE_CODE,BASIC_EPS"]
+    : ["REPORT_DATE,DATE_TYPE_CODE,CURRENCY,BASIC_EPS"];
+  const filter=encodeURIComponent(`(SECUCODE="${code}")`);
+  let last=null;
+  for(const columns of sets){
+    const url=`https://datacenter.eastmoney.com/securities/api/data/v1/get?pageNumber=1&pageSize=400&sortTypes=1&sortColumns=REPORT_DATE&source=F10&client=PC&reportName=${report}&columns=${columns}&filter=${filter}`;
+    try { return (await histGet(url)).result.data||[]; }
+    catch(e){ last=e; }
+  }
+  throw last||new Error("eps");
+}
+function hkTtm(rows){
+  const recs=rows.map(r=>({
+    date:String(r.REPORT_DATE).slice(0,10),
+    code:r.DATE_TYPE_CODE,
+    eps:+r.BASIC_EPS,
+    bps:+r.BPS
+  })).filter(r=>r.date && r.eps>0).sort((a,b)=>a.date.localeCompare(b.date));
+  const by={};
+  recs.forEach(r=>{ by[r.code+"|"+r.date.slice(0,4)]=r; });
+  const out=[];
+  recs.forEach(r=>{
+    let ttm=null;
+    if(r.code==="001") ttm=r.eps;
+    else if(r.code==="002"||r.code==="003"||r.code==="004"){
+      const y=+r.date.slice(0,4);
+      const fy=by["001|"+(y-1)];
+      const prev=by[r.code+"|"+(y-1)];
+      if(fy && prev) ttm=r.eps+fy.eps-prev.eps;
+    }
+    if(ttm>0) out.push({date:r.date, eps:ttm, bps:r.bps>0?r.bps:0});
+  });
+  return out;
+}
+function usTtm(rows){
+  const qcodes={"003":1,"006":1,"007":1,"008":1};
+  const uniq=[];
+  rows.map(r=>({
+    date:String(r.REPORT_DATE).slice(0,10),
+    code:r.DATE_TYPE_CODE,
+    eps:+r.BASIC_EPS,
+    ccy:r.CURRENCY
+  })).filter(r=>qcodes[r.code] && r.eps>0 && r.date).sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{
+    if(uniq.length && uniq[uniq.length-1].date===r.date) return;
+    uniq.push(r);
+  });
+  const out=[];
+  for(let i=3;i<uniq.length;i++){
+    if(Date.parse(uniq[i].date)-Date.parse(uniq[i-3].date)>400*864e5) continue;
+    const ttm=uniq[i].eps+uniq[i-1].eps+uniq[i-2].eps+uniq[i-3].eps;
+    if(ttm>0) out.push({date:uniq[i].date, eps:ttm, ccy:uniq[i].ccy, bps:0});
+  }
+  return out;
+}
+function quoteEps(eps, ccy, ym, d, fx){
+  if(!(eps>0)) return null;
+  let unit=eps*(ADS[d.id]||1);
+  if(d.mkt!=="美") return unit;
+  const spec=fxSpec(ccy);
+  if(!spec) return unit;
+  if(spec.bad) return null;
+  if(spec.twd){
+    const rate=twdPerUsd(ym);
+    return rate>0 ? unit/rate : null;
+  }
+  const fr=closeAt(fx, ym);
+  if(!fr) return null;
+  return spec.mul ? unit*fr.close : unit/fr.close;
+}
+async function bandCloses(d){
+  const ids=d.mkt==="港" ? ["116."+quoteKey(d)] : ["105."+quoteKey(d), "106."+quoteKey(d)];
+  let best=[];
+  for(const id of ids){
+    const url=`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${id}&klt=101&fqt=1&lmt=3000&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f53`;
+    const j=await fetch(url).then(r=>r.json());
+    const kl=j.data && j.data.klines || [];
+    if(kl.length>best.length) best=kl;
+  }
+  return best.map(s=>{
+    const [dt, close]=s.split(",");
+    return {date:dt.slice(0,10), close:+close};
+  }).filter(c=>c.date && c.close>0);
+}
+async function bandOverseas(d){
+  const rows=await bandRows(d);
+  let ttm=d.mkt==="港" ? hkTtm(rows) : usTtm(rows);
+  if(d.mkt==="美" && ttm.length<4){
+    ttm=rows.map(r=>({
+      date:String(r.REPORT_DATE).slice(0,10),
+      code:r.DATE_TYPE_CODE,
+      eps:+r.BASIC_EPS,
+      ccy:r.CURRENCY
+    })).filter(r=>r.code==="001" && r.eps>0 && r.date).sort((a,b)=>a.date.localeCompare(b.date));
+  }
+  if(d.mkt==="美" && ttm.length){
+    const spec=fxSpec(ttm.find(p=>p.ccy) && ttm.find(p=>p.ccy).ccy);
+    if(spec && spec.bad) return null;
+    const fx=spec && spec.sec ? await fxCloses(spec.sec) : null;
+    ttm=ttm.map(p=>{
+      const eps=quoteEps(p.eps, p.ccy, p.date.slice(0,7), d, fx);
+      return eps>0 ? {date:p.date, eps, bps:p.bps} : null;
+    }).filter(Boolean);
+  }
+  if(ttm.length<4) return null;
+  const closes=await bandCloses(d);
+  let j=0;
+  const points=[];
+  closes.forEach(c=>{
+    while(j+1<ttm.length && ttm[j+1].date<=c.date) j++;
+    const e=ttm[j];
+    if(!e || e.date>c.date || !(e.eps>0)) return;
+    points.push({date:c.date, pe:c.close/e.eps, pb:e.bps>0?c.close/e.bps:0, close:c.close});
+  });
+  return packBand(points, /上市以来/.test(d.pct||""));
 }
 async function histA(d){
   const code=d.ticker.slice(0,6);
